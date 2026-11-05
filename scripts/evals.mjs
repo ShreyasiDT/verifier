@@ -11,18 +11,27 @@ const cases = JSON.parse(await readFile(new URL("../evals/cases.json", import.me
   (c) => !filter || c.id.includes(filter),
 );
 
-async function run(testCase) {
-  const started = performance.now();
-  const res = await fetch(`${BASE_URL}/api/check`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: testCase.text }),
-  });
-  const result = await res.json();
-  return { testCase, result, seconds: (performance.now() - started) / 1000 };
+// Cases with an "image" are sent as a form upload, like the page does.
+async function request(testCase) {
+  if (!testCase.image) {
+    return { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: testCase.text }) };
+  }
+  const bytes = await readFile(new URL(`../evals/${testCase.image}`, import.meta.url));
+  const form = new FormData();
+  form.set("text", testCase.text ?? "");
+  form.set("image", new Blob([bytes], { type: "image/png" }), "image.png");
+  return { body: form };
 }
 
-function problems({ expect }, result) {
+async function run(testCase) {
+  const started = performance.now();
+  const res = await fetch(`${BASE_URL}/api/check`, { method: "POST", ...(await request(testCase)) });
+  const result = await res.json();
+  return { testCase, result, status: res.status, seconds: (performance.now() - started) / 1000 };
+}
+
+function problems({ expect }, result, status) {
+  if (expect.status) return status === expect.status ? [] : [`status ${status}, expected ${expect.status}`];
   if (result.error) return [result.error];
   const found = [];
   if (!expect.verdict.includes(result.verdict)) found.push(`verdict ${result.verdict}, expected ${expect.verdict}`);
@@ -49,12 +58,13 @@ await Promise.all(
   Array.from({ length: CONCURRENCY }, async () => {
     while (queue.length > 0) {
       const outcome = await run(queue.shift());
-      outcome.problems = problems(outcome.testCase, outcome.result);
+      outcome.problems = problems(outcome.testCase, outcome.result, outcome.status);
       outcomes.push(outcome);
       const { testCase, result, seconds } = outcome;
       const status = outcome.problems.length === 0 ? "PASS" : "FAIL";
       const checkedBy = result.factCheckedBy?.length ? ` ✔ ${result.factCheckedBy.map((f) => f.publisher).join(", ")}` : "";
-      console.log(`${status} ${testCase.id} (${seconds.toFixed(0)}s): ${result.verdict} | ${result.headline}${checkedBy}`);
+      const summary = result.error ? `error: ${result.error}` : `${result.verdict} | ${result.headline}${checkedBy}`;
+      console.log(`${status} ${testCase.id} (${seconds.toFixed(0)}s): ${summary}`);
       for (const p of outcome.problems) console.log(`      !! ${p}`);
     }
   }),

@@ -1,8 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClaimCheck, FactCheckResult, UnverifiableReason, Verdict } from "@/lib/fact-check";
 import { getLabels } from "@/lib/labels";
+import type { ImageReading } from "@/lib/read-image";
+
+type CheckResponse = FactCheckResult & { image: ImageReading | null };
+
+// Phone photos can be several MB; this is plenty to read text and keeps uploads small.
+const MAX_IMAGE_SIDE = 1600;
+
+async function shrinkImage(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't read this image."))), "image/jpeg", 0.85),
+  );
+}
 
 const VERDICT_STYLES: Record<Verdict, { icon: string; className: string }> = {
   true: {
@@ -41,9 +60,37 @@ function cardStyle(result: FactCheckResult) {
 
 export function FactChecker() {
   const [text, setText] = useState("");
+  const [image, setImage] = useState<{ blob: Blob; previewUrl: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<FactCheckResult | null>(null);
+  const [result, setResult] = useState<CheckResponse | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // Free the preview's memory when the image is replaced or removed.
+  useEffect(() => {
+    if (!image) return;
+    return () => URL.revokeObjectURL(image.previewUrl);
+  }, [image]);
+
+  async function addImage(file: File | undefined) {
+    if (!file || !file.type.startsWith("image/")) return;
+    setError(null);
+    try {
+      const blob = await shrinkImage(file);
+      setImage({ blob, previewUrl: URL.createObjectURL(blob) });
+    } catch {
+      setError("We couldn't open this image. Please try a JPG or PNG screenshot.");
+    }
+  }
+
+  // Screenshots are often pasted straight from the clipboard.
+  function handlePaste(e: React.ClipboardEvent) {
+    const file = [...e.clipboardData.files].find((f) => f.type.startsWith("image/"));
+    if (file) {
+      e.preventDefault();
+      addImage(file);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,11 +98,18 @@ export function FactChecker() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
+      let body: BodyInit;
+      const headers: HeadersInit = {};
+      if (image) {
+        const form = new FormData();
+        form.set("text", text);
+        form.set("image", image.blob, "image.jpg");
+        body = form;
+      } else {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify({ text });
+      }
+      const res = await fetch("/api/check", { method: "POST", headers, body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
       setResult(data);
@@ -68,7 +122,16 @@ export function FactChecker() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSubmit}
+        onPaste={handlePaste}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          addImage(e.dataTransfer.files[0]);
+        }}
+        className="flex flex-col gap-4"
+      >
         <label htmlFor="message" className="text-lg font-medium">
           Paste the message or link you received
         </label>
@@ -77,12 +140,49 @@ export function FactChecker() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={7}
-          placeholder="e.g. Government is giving ₹5000 to every citizen, apply before Friday…"
+          placeholder={
+            image
+              ? "Optional: add the message that came with the image…"
+              : "e.g. Government is giving ₹5000 to every citizen, apply before Friday…"
+          }
           className="w-full rounded-xl border border-zinc-300 bg-white p-4 text-lg dark:border-zinc-700 dark:bg-zinc-900"
         />
+
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            addImage(e.target.files?.[0]);
+            e.target.value = ""; // so choosing the same file again still triggers a change
+          }}
+        />
+        {image ? (
+          <div className="flex items-start gap-4 rounded-xl border border-zinc-300 p-3 dark:border-zinc-700">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local preview of an unsaved file */}
+            <img src={image.previewUrl} alt="The image you added" className="max-h-40 rounded-lg" />
+            <button
+              type="button"
+              onClick={() => setImage(null)}
+              className="ml-auto rounded-lg border border-zinc-400 px-3 py-2 text-base"
+            >
+              ✕ Remove image
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="h-14 rounded-xl border-2 border-dashed border-zinc-400 text-lg font-medium"
+          >
+            📷 Add a photo or screenshot
+          </button>
+        )}
+
         <button
           type="submit"
-          disabled={loading || text.trim().length < 10}
+          disabled={loading || (!image && text.trim().length < 10)}
           className="h-14 rounded-xl bg-foreground text-lg font-semibold text-background disabled:opacity-40"
         >
           {loading ? "Checking… this can take up to a minute" : "Check this message"}
@@ -100,7 +200,7 @@ export function FactChecker() {
   );
 }
 
-function ResultCard({ result }: { result: FactCheckResult }) {
+function ResultCard({ result }: { result: CheckResponse }) {
   const style = cardStyle(result);
   const labels = getLabels(result.languageCode);
   const factCheckUrls = new Set(result.factCheckedBy.map((f) => f.url));
@@ -135,6 +235,12 @@ function ResultCard({ result }: { result: FactCheckResult }) {
           <span aria-hidden>⚠️ </span>
           {labels.couldNotOpen} <span className="font-semibold">{result.unreadableLinks.join(", ")}</span>
         </p>
+      )}
+      {result.image?.text && (
+        <details className="rounded-xl border border-current/30 p-4">
+          <summary className="cursor-pointer text-base font-semibold">🖼️ {labels.imageText}</summary>
+          <p className="mt-3 whitespace-pre-line text-base opacity-90">{result.image.text}</p>
+        </details>
       )}
       <details className="group rounded-xl border border-current/30 bg-white/50 dark:bg-black/20">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">

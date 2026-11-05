@@ -163,7 +163,8 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
       "usually the harmful part, so check them as a claim together with the reason the message gives.\n\n" +
       "The message may include linked pages. If the message is little more than a link, take the claims " +
       "from the linked page (its headline claim first), and use the page's language. Otherwise check what " +
-      "the message itself says, using the page only as context.",
+      "the message itself says, using the page only as context. Text marked [Text in the image] is part " +
+      "of the message: check its claims just like typed text.",
     prompt: context,
   }));
 
@@ -235,6 +236,11 @@ async function checkClaim(
       "prize, or enter personal details through a link that isn't an official government website " +
       "(those end in .gov.in or .nic.in), say plainly in your reasons that this is a common scam sign " +
       "and they shouldn't open it or share details.\n\n" +
+      "Parts marked [Image: …] and [Text in the image] came from a picture the person received. Check the " +
+      "claims in its text like any message. You can't tell from a description whether a photo is real, " +
+      "edited, old or from somewhere else, so never call an image fake or genuine from its looks; if the " +
+      "claim depends on that (e.g. 'this photo is from today's floods'), it is unverifiable and your " +
+      "reasons should say the photo itself couldn't be checked.\n\n" +
       `Write the headline and reasons in ${language}.\n\n` +
       "Your readers are elderly parents with no background in science, maths or technology. " +
       "Write like you are gently explaining to your grandmother:\n" +

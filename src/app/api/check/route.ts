@@ -1,26 +1,44 @@
 import { z } from "zod";
 import { checkMessage } from "@/lib/cached-fact-check";
+import { messageWithImage, readImage, type ImageReading } from "@/lib/read-image";
 
 export const maxDuration = 60;
 
-const bodySchema = z.object(
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // the page shrinks photos first, so real uploads are far smaller
+
+const textSchema = z.object(
   {
     text: z.string().trim().min(10, "Please paste a longer message.").max(5000, "Message is too long."),
   },
   { error: "Please paste a message to check." },
 );
 
+// With an image, the text is optional: it's whatever the user typed alongside it.
+const imageTextSchema = z.string().trim().max(5000, "Message is too long.");
+
 export async function POST(request: Request) {
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
-  }
+  const input = await parseInput(request);
+  if ("error" in input) return Response.json({ error: input.error }, { status: 400 });
 
   try {
+    let message = input.text;
+    let reading: ImageReading | null = null;
+    if (input.image) {
+      reading = await readImage(input.image.bytes, input.image.type);
+      if (!reading.text.trim() && input.text.length < 10) {
+        return Response.json(
+          { error: "We couldn't find any text in this image. Please type the message that came with it." },
+          { status: 422 },
+        );
+      }
+      message = messageWithImage(input.text, reading);
+    }
+
     const started = Date.now();
-    const result = await checkMessage(parsed.data.text);
+    const result = await checkMessage(message);
     if (Date.parse(result.checkedAt) < started) console.info(`[cache] hit, checked at ${result.checkedAt}`);
-    return Response.json(result);
+    return Response.json({ ...result, image: reading });
   } catch (err) {
     // Checked by name: the error may be recreated when crossing the cache boundary.
     if (err instanceof Error && err.name === "UnreadableLinkError") {
@@ -32,4 +50,24 @@ export async function POST(request: Request) {
     console.error("fact-check failed", err);
     return Response.json({ error: "Something went wrong while checking. Please try again." }, { status: 500 });
   }
+}
+
+type Input = { text: string; image?: { bytes: Uint8Array; type: string } } | { error: string };
+
+// The page sends JSON for text only, and a form upload when there's an image.
+async function parseInput(request: Request): Promise<Input> {
+  if (!request.headers.get("content-type")?.startsWith("multipart/form-data")) {
+    const parsed = textSchema.safeParse(await request.json().catch(() => null));
+    return parsed.success ? { text: parsed.data.text } : { error: parsed.error.issues[0]?.message ?? "Invalid request." };
+  }
+
+  const form = await request.formData().catch(() => null);
+  const image = form?.get("image");
+  if (!(image instanceof File) || image.size === 0) return { error: "Please choose an image to check." };
+  if (!IMAGE_TYPES.includes(image.type)) return { error: "Please upload a JPG, PNG or WebP image." };
+  if (image.size > MAX_IMAGE_BYTES) return { error: "This image is too large. Please choose one under 5 MB." };
+
+  const text = imageTextSchema.safeParse(form?.get("text") ?? "");
+  if (!text.success) return { error: text.error.issues[0]?.message ?? "Invalid request." };
+  return { text: text.data, image: { bytes: new Uint8Array(await image.arrayBuffer()), type: image.type } };
 }

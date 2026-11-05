@@ -227,7 +227,8 @@
         "false"
       ],
       "claims": [
-        2
+        2,
+        3
       ],
       "language": "hi",
       "factChecked": true
@@ -373,6 +374,71 @@
       ],
       "language": "en",
       "articles": 1
+    }
+  },
+  {
+    "id": "I-hi-gps",
+    "image": "images/hi-gps.png",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "hi"
+    }
+  },
+  {
+    "id": "I-mr-laptop-link",
+    "image": "images/mr-laptop-link.png",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr",
+      "unreadableLinks": 1
+    }
+  },
+  {
+    "id": "I-en-chandrayaan",
+    "image": "images/en-chandrayaan.png",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "I-en-fake-notice",
+    "image": "images/en-fake-notice.png",
+    "expect": {
+      "verdict": [
+        "unverifiable",
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "I-no-text",
+    "image": "images/no-text.png",
+    "expect": {
+      "status": 422
     }
   }
 ]

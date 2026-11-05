@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { lowEffort, model } from "./llm";
+import { redis } from "./redis";
 
 export type ImageReading = {
   text: string; // every piece of text in the image, in its original language
@@ -25,15 +26,33 @@ const readingSchema = z.object({
 });
 
 // WhatsApp forwards of the same image are often byte-identical, so remember what we read to skip the
-// vision call. Kept in server memory like the result cache, and bounded so it can't grow forever.
+// vision call: in Redis when it's set up (shared by every server), otherwise in this server's memory,
+// bounded so it can't grow forever.
 const readings = new Map<string, { reading: ImageReading; expires: number }>();
 const MAX_ENTRIES = 500;
-const LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+const LIFETIME_SECONDS = 7 * 24 * 60 * 60;
+
+async function savedReading(key: string): Promise<ImageReading | null> {
+  if (redis) return redis.get<ImageReading>(`image:${key}`).catch(() => null);
+  const saved = readings.get(key);
+  return saved && saved.expires > Date.now() ? saved.reading : null;
+}
+
+async function saveReading(key: string, reading: ImageReading) {
+  if (redis) {
+    await redis.set(`image:${key}`, reading, { ex: LIFETIME_SECONDS }).catch((err) => {
+      console.error("saving image reading failed", err);
+    });
+    return;
+  }
+  if (readings.size >= MAX_ENTRIES) readings.delete(readings.keys().next().value!);
+  readings.set(key, { reading, expires: Date.now() + LIFETIME_SECONDS * 1000 });
+}
 
 export async function readImage(image: Uint8Array, mediaType: string): Promise<ImageReading> {
   const key = createHash("sha256").update(image).digest("hex");
-  const saved = readings.get(key);
-  if (saved && saved.expires > Date.now()) return saved.reading;
+  const saved = await savedReading(key);
+  if (saved) return saved;
 
   const started = performance.now();
   const { output } = await generateText({
@@ -55,8 +74,7 @@ export async function readImage(image: Uint8Array, mediaType: string): Promise<I
   });
   console.info(`[timing] read image ${((performance.now() - started) / 1000).toFixed(1)}s`);
 
-  if (readings.size >= MAX_ENTRIES) readings.delete(readings.keys().next().value!);
-  readings.set(key, { reading: output, expires: Date.now() + LIFETIME_MS });
+  await saveReading(key, output);
   return output;
 }
 

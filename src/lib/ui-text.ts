@@ -19,6 +19,8 @@ export type ErrorCode =
   | "image_unreadable"
   | "no_text_in_image"
   | "unreadable_link"
+  | "rate_limited"
+  | "daily_limit"
   | "server_error";
 
 type UiText = {
@@ -86,10 +88,12 @@ const TEXT: Record<UiLanguage, UiText> = {
       no_message: "Please paste a message to check.",
       no_image: "Please choose an image to check.",
       bad_image_type: "Please choose a JPG, PNG or WebP image.",
-      image_too_large: "This image is too large. Please choose one under 5 MB.",
+      image_too_large: "This image is too large. Please choose one under 4 MB.",
       image_unreadable: "We couldn't open this image. Please try a JPG or PNG screenshot.",
       no_text_in_image: "We couldn't find any text in this image. Please type the message that came with it.",
       unreadable_link: "We couldn't open this link. Please paste the text of the message or article instead.",
+      rate_limited: "You've checked a lot of messages in a short time. Please try again in a few minutes.",
+      daily_limit: "We've reached today's limit for checks. Please try again tomorrow.",
       server_error: "Something went wrong while checking. Please try again.",
     },
   },
@@ -129,10 +133,12 @@ const TEXT: Record<UiLanguage, UiText> = {
       no_message: "कृपया जाँचने के लिए कोई मैसेज डालें।",
       no_image: "कृपया जाँचने के लिए कोई तस्वीर चुनें।",
       bad_image_type: "कृपया JPG, PNG या WebP तस्वीर चुनें।",
-      image_too_large: "यह तस्वीर बहुत बड़ी है। कृपया 5 MB से छोटी तस्वीर चुनें।",
+      image_too_large: "यह तस्वीर बहुत बड़ी है। कृपया 4 MB से छोटी तस्वीर चुनें।",
       image_unreadable: "यह तस्वीर नहीं खुल सकी। कृपया JPG या PNG स्क्रीनशॉट आज़माएँ।",
       no_text_in_image: "इस तस्वीर में हमें कोई लिखावट नहीं मिली। कृपया तस्वीर के साथ आया मैसेज लिखें।",
       unreadable_link: "यह लिंक नहीं खुल सका। कृपया मैसेज या लेख का टेक्स्ट डालें।",
+      rate_limited: "आपने कम समय में बहुत सारे मैसेज जाँचे हैं। कृपया कुछ मिनट बाद फिर कोशिश करें।",
+      daily_limit: "आज की जाँचों की सीमा पूरी हो गई है। कृपया कल फिर कोशिश करें।",
       server_error: "जाँच के दौरान कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।",
     },
   },
@@ -172,10 +178,12 @@ const TEXT: Record<UiLanguage, UiText> = {
       no_message: "कृपया तपासण्यासाठी मेसेज टाका.",
       no_image: "कृपया तपासण्यासाठी चित्र निवडा.",
       bad_image_type: "कृपया JPG, PNG किंवा WebP चित्र निवडा.",
-      image_too_large: "हे चित्र खूप मोठे आहे. कृपया ५ MB पेक्षा लहान चित्र निवडा.",
+      image_too_large: "हे चित्र खूप मोठे आहे. कृपया ४ MB पेक्षा लहान चित्र निवडा.",
       image_unreadable: "हे चित्र उघडता आले नाही. कृपया JPG किंवा PNG स्क्रीनशॉट वापरून पाहा.",
       no_text_in_image: "या चित्रात आम्हाला कोणताही मजकूर सापडला नाही. कृपया चित्रासोबत आलेला मेसेज लिहा.",
       unreadable_link: "ही लिंक उघडता आली नाही. कृपया मेसेज किंवा लेखाचा मजकूर टाका.",
+      rate_limited: "तुम्ही कमी वेळात खूप मेसेज तपासले आहेत. कृपया काही मिनिटांनी पुन्हा प्रयत्न करा.",
+      daily_limit: "आजच्या तपासण्यांची मर्यादा पूर्ण झाली आहे. कृपया उद्या पुन्हा प्रयत्न करा.",
       server_error: "तपासणी करताना काहीतरी चुकले. कृपया पुन्हा प्रयत्न करा.",
     },
   },

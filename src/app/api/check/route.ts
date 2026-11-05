@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { checkMessage } from "@/lib/cached-fact-check";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { messageWithImage, readImage, type ImageReading } from "@/lib/read-image";
 import type { ErrorCode } from "@/lib/ui-text";
 
 export const maxDuration = 60;
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // the page shrinks photos first, so real uploads are far smaller
+// Vercel rejects request bodies over 4.5 MB. The page shrinks photos first, so real uploads are far smaller.
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const textSchema = z.object(
   {
@@ -33,6 +35,16 @@ function textErrorCode(issue: z.core.$ZodIssue | undefined): ErrorCode {
 export async function POST(request: Request) {
   const input = await parseInput(request);
   if ("error" in input) return errorResponse(input.code, input.error, 400);
+
+  const limit = await checkRateLimit(clientIp(request));
+  if (!limit.ok) {
+    const response =
+      limit.scope === "person"
+        ? errorResponse("rate_limited", "You've checked a lot of messages. Please try again in a little while.", 429)
+        : errorResponse("daily_limit", "We've reached today's limit for checks. Please try again tomorrow.", 429);
+    response.headers.set("Retry-After", String(limit.retryAfterSeconds));
+    return response;
+  }
 
   try {
     let message = input.text;
@@ -85,7 +97,7 @@ async function parseInput(request: Request): Promise<Input> {
     return { error: "Please upload a JPG, PNG or WebP image.", code: "bad_image_type" };
   }
   if (image.size > MAX_IMAGE_BYTES) {
-    return { error: "This image is too large. Please choose one under 5 MB.", code: "image_too_large" };
+    return { error: "This image is too large. Please choose one under 4 MB.", code: "image_too_large" };
   }
 
   const text = imageTextSchema.safeParse(form?.get("text") ?? "");

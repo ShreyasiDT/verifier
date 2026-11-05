@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.85",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.41.0",
     "ai": "^7.0.163",
     "exa-js": "^2.27.0",
     "next": "16.4.3",

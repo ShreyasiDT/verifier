@@ -42,6 +42,8 @@ export type FactCheckResult = {
   claims: ClaimCheck[];
   sources: Source[];
   factCheckedBy: FactCheckMatch[];
+  // When the pipeline actually ran; older than the request means it came from the cache.
+  checkedAt: string;
 };
 
 // What the judge reads: web results, plus published fact-checks listed first.
@@ -161,6 +163,7 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
     claims,
     sources: [...sources.values()],
     factCheckedBy: [...factCheckedBy.values()],
+    checkedAt: new Date().toISOString(),
   };
 }
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { factCheck } from "@/lib/fact-check";
+import { checkMessage } from "@/lib/cached-fact-check";
 
 export const maxDuration = 60;
 
@@ -17,7 +17,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    return Response.json(await factCheck(parsed.data.text));
+    const started = Date.now();
+    const result = await checkMessage(parsed.data.text);
+    if (Date.parse(result.checkedAt) < started) console.info(`[cache] hit, checked at ${result.checkedAt}`);
+    return Response.json(result);
   } catch (err) {
     console.error("fact-check failed", err);
     return Response.json({ error: "Something went wrong while checking. Please try again." }, { status: 500 });

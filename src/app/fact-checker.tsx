@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { FactCheckResult, UnverifiableReason, Verdict } from "@/lib/fact-check";
+import type { ClaimCheck, FactCheckResult, UnverifiableReason, Verdict } from "@/lib/fact-check";
 import { getLabels } from "@/lib/labels";
 
 const VERDICT_STYLES: Record<Verdict, { icon: string; className: string }> = {
@@ -120,14 +120,19 @@ function ResultCard({ result }: { result: FactCheckResult }) {
           </span>
         </summary>
         <div className="flex flex-col gap-4 px-4 pb-4">
-          <ul className="flex list-disc flex-col gap-3 pl-6 text-lg leading-relaxed">
-            {result.reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-          <p className="text-base opacity-80">
-            <span className="font-semibold">{labels.whatWeChecked}</span> {result.claim}
-          </p>
+          {result.claims.length === 1 ? (
+            <ClaimDetails claim={result.claims[0]} labels={labels} />
+          ) : (
+            // Several claims: show each one with its own verdict so readers see which part is wrong.
+            result.claims.map((claim, i) => (
+              <div key={i} className="flex flex-col gap-3 border-t border-current/20 pt-4 first:border-t-0 first:pt-0">
+                <p className="text-lg font-semibold">
+                  {VERDICT_STYLES[claim.verdict].icon} {labels.verdict[claim.verdict]} — {claim.headline}
+                </p>
+                <ClaimDetails claim={claim} labels={labels} />
+              </div>
+            ))
+          )}
         </div>
       </details>
       {result.sources.length > 0 && (
@@ -151,5 +156,20 @@ function ResultCard({ result }: { result: FactCheckResult }) {
         </div>
       )}
     </section>
+  );
+}
+
+function ClaimDetails({ claim, labels }: { claim: ClaimCheck; labels: ReturnType<typeof getLabels> }) {
+  return (
+    <>
+      <ul className="flex list-disc flex-col gap-3 pl-6 text-lg leading-relaxed">
+        {claim.reasons.map((reason) => (
+          <li key={reason}>{reason}</li>
+        ))}
+      </ul>
+      <p className="text-base opacity-80">
+        <span className="font-semibold">{labels.whatWeChecked}</span> {claim.claim}
+      </p>
+    </>
   );
 }

@@ -10,11 +10,18 @@ export type SearchResult = {
   text: string;
 };
 
+// A failed search returns no results instead of throwing, so one bad query doesn't sink the whole check.
 export async function searchWeb(query: string, numResults = 6): Promise<SearchResult[]> {
-  const { results } = await exa.search(query, {
-    numResults,
-    contents: { text: { maxCharacters: 3000 } },
-  });
+  let results;
+  try {
+    ({ results } = await exa.search(query, {
+      numResults,
+      contents: { text: { maxCharacters: 3000 } },
+    }));
+  } catch (err) {
+    console.error("search failed", { query, err });
+    return [];
+  }
 
   return results
     .filter((r) => r.text)

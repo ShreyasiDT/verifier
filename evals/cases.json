@@ -1,0 +1,333 @@
+[
+  {
+    "id": "t1-chandrayaan-en",
+    "text": "India's Chandrayaan-3 successfully landed near the south pole of the Moon on 23 August 2023. Proud moment for every Indian! 🇮🇳",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "t2-starnote-mr",
+    "text": "माहितीसाठी: ज्या ५०० रुपयांच्या नोटेवर नंबरमध्ये स्टार (*) चिन्ह असते, ती नोट RBI नुसार पूर्णपणे वैध आहे. घाबरू नका.",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "t3-demonetisation-hi",
+    "text": "8 नवंबर 2016 को भारत सरकार ने 500 और 1000 रुपये के पुराने नोटों को बंद करने की घोषणा की थी।",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "hi"
+    }
+  },
+  {
+    "id": "t4-lata-award-mr",
+    "text": "गानसम्राज्ञी लता मंगेशकर यांना २००१ साली भारतरत्न हा देशातील सर्वोच्च नागरी पुरस्कार देण्यात आला.",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "f5-gps-hi",
+    "text": "बड़ी खबर!! नए 2000 रुपये के नोट में GPS नैनो चिप लगी है, जिससे सरकार पता लगा सकती है कि नोट कहाँ छिपाए गए हैं। जमीन के 120 मीटर नीचे भी सिग्नल मिलेगा! सबको भेजो",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "hi"
+    }
+  },
+  {
+    "id": "f6-nasa-mr",
+    "text": "⚠️ महत्त्वाची सूचना ⚠️ NASA ने सांगितले आहे की आज रात्री १२:३० ते ३:३० दरम्यान पृथ्वीजवळून धोकादायक कॉस्मिक किरणे जातील. मोबाईल बंद ठेवा आणि शरीराजवळ ठेवू नका! सर्व नातेवाईकांना पाठवा 🙏",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr",
+      "factChecked": true
+    }
+  },
+  {
+    "id": "f7-laptop-mr",
+    "text": "आनंदाची बातमी! मोदी सरकार सर्व विद्यार्थ्यांना \"प्रधानमंत्री मोफत लॅपटॉप योजना\" अंतर्गत मोफत लॅपटॉप देत आहे. खालील लिंकवर लगेच नोंदणी करा, फक्त २ दिवस बाकी!",
+    "expect": {
+      "verdict": [
+        "false",
+        "unverifiable"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "f8-unesco-hi",
+    "text": "गर्व की बात! UNESCO ने हमारे राष्ट्रगान \"जन गण मन\" को दुनिया का सबसे अच्छा राष्ट्रगान घोषित किया है। हर भारतीय को यह मैसेज भेजें 🇮🇳",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "hi",
+      "factChecked": true
+    }
+  },
+  {
+    "id": "f9-lemon-mr",
+    "text": "डॉक्टरांचा सल्ला: रोज सकाळी गरम पाण्यात लिंबू पिळून प्यायल्याने कॅन्सर पूर्णपणे बरा होतो. केमोथेरपीची गरज नाही! हा संदेश सर्वांना पाठवा.",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "m10-banana-mr",
+    "text": "धक्कादायक!! केळी रेडिओॲक्टिव्ह असतात हे शास्त्रज्ञांनी सिद्ध केले आहे. मुलांना केळी खायला देऊ नका, कॅन्सर होऊ शकतो! सर्वांना पाठवा",
+    "expect": {
+      "verdict": [
+        "misleading",
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "u12-local-mr",
+    "text": "नागपूर येथील श्री गणेश मित्र मंडळातर्फे रविवारी परिसरातील ५० गरजू विद्यार्थ्यांना मोफत वह्या आणि पुस्तके वाटप करण्यात आली. कार्यक्रमाला नगरसेवक सुनील पाटील उपस्थित होते.",
+    "expect": {
+      "verdict": [
+        "unverifiable"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "mr",
+      "reason": [
+        "local_news"
+      ]
+    }
+  },
+  {
+    "id": "u14-recent-hi",
+    "text": "अभी अभी खबर आई है: आज सुबह पुणे रेलवे स्टेशन के प्लेटफॉर्म नंबर 3 पर भीषण आग लगी है, सभी लोकल ट्रेनें रद्द। कृपया स्टेशन न जाएं।",
+    "expect": {
+      "verdict": [
+        "unverifiable"
+      ],
+      "claims": [
+        1,
+        2,
+        3
+      ],
+      "language": "hi",
+      "reason": [
+        "too_recent",
+        "no_evidence"
+      ]
+    }
+  },
+  {
+    "id": "u15-pill-en",
+    "text": "BREAKING: Scientists at IIT Bombay have invented a pill that lets humans survive without sleep for 30 days. The government will distribute it free from next month!!",
+    "expect": {
+      "verdict": [
+        "unverifiable"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en",
+      "reason": [
+        "no_evidence"
+      ]
+    }
+  },
+  {
+    "id": "u16-chain-mr",
+    "text": "🙏 जय श्री राम 🙏 हा संदेश ११ लोकांना पाठवा, तुमची सर्व स्वप्ने ७ दिवसात पूर्ण होतील. दुर्लक्ष केल्यास वाईट बातमी मिळेल.",
+    "expect": {
+      "verdict": [
+        "unverifiable",
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "M1-alltrue-en",
+    "text": "India won the 2011 Cricket World Cup under the captaincy of MS Dhoni. Also, Chandrayaan-3 landed near the south pole of the Moon in August 2023.",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        2
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "M3-coins-hi",
+    "text": "भारत की राजधानी नई दिल्ली है। साथ ही RBI ने घोषणा की है कि 1 जनवरी से 10 रुपये के सिक्के बंद हो जाएंगे, दुकानदार इन्हें नहीं लेंगे।",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        2
+      ],
+      "language": "hi",
+      "factChecked": true
+    }
+  },
+  {
+    "id": "M4-threefalse-en",
+    "text": "Important news: 1) WhatsApp will start charging ₹499 per month from next week. 2) Eating garlic protects you from getting COVID-19. 3) The new ₹2000 note has a GPS nano chip inside it.",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        3
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "M5-banana-hi",
+    "text": "केले में पोटैशियम भरपूर होता है। लेकिन वैज्ञानिकों ने साबित किया है कि केले रेडियोएक्टिव होते हैं, इसलिए बच्चों को केला बिल्कुल न दें।",
+    "expect": {
+      "verdict": [
+        "misleading",
+        "false"
+      ],
+      "claims": [
+        2,
+        3
+      ],
+      "language": "hi"
+    }
+  },
+  {
+    "id": "M6-shaniwar-local-mr",
+    "text": "पुण्यातील शनिवारवाडा पेशव्यांनी बांधला होता. आणि आमच्या सोसायटीतील श्री. विनायक देशपांडे यांचा काल ७५ वा वाढदिवस मोठ्या उत्साहात साजरा झाला.",
+    "expect": {
+      "verdict": [
+        "unverifiable"
+      ],
+      "claims": [
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "M7-whatsapp-mr",
+    "text": "हा संदेश १० जणांना पाठवा नाहीतर तुमचे WhatsApp खाते बंद होईल. पंतप्रधान मोदींनी जाहीर केले आहे की उद्यापासून WhatsApp रात्री ११:३० ते सकाळी ६ पर्यंत बंद राहील.",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr"
+    }
+  },
+  {
+    "id": "M8-everest-en",
+    "text": "Mount Everest is the tallest mountain in the world. Also, the Great Wall of China is the only man-made structure visible from the Moon with the naked eye.",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        2
+      ],
+      "language": "en"
+    }
+  },
+  {
+    "id": "f-nasa-en",
+    "text": "Tonight from 12:30 to 3:30 am NASA warns that dangerous cosmic rays will pass close to Earth. Switch off your phones and keep them away from your body!",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en",
+      "factChecked": true
+    }
+  },
+  {
+    "id": "f-unesco-en",
+    "text": "Proud moment! UNESCO has declared our national anthem Jana Gana Mana the best national anthem in the world.",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1
+      ],
+      "language": "en",
+      "factChecked": true
+    }
+  }
+]

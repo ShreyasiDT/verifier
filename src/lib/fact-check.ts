@@ -2,6 +2,7 @@ import "server-only";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { model } from "./llm";
+import { searchFactChecks, type PublishedFactCheck } from "./fact-check-db";
 import { searchWeb, type SearchResult } from "./search";
 
 export const VERDICTS = ["true", "false", "misleading", "unverifiable"] as const;
@@ -19,6 +20,9 @@ export type UnverifiableReason = (typeof UNVERIFIABLE_REASONS)[number];
 
 type Source = { title: string; url: string };
 
+// A published fact-check that the judge confirmed is about this same claim.
+export type FactCheckMatch = { publisher: string; rating: string; url: string };
+
 export type ClaimCheck = {
   claim: string;
   verdict: Verdict;
@@ -26,6 +30,7 @@ export type ClaimCheck = {
   headline: string;
   reasons: string[];
   sources: Source[];
+  factCheckedBy: FactCheckMatch[];
 };
 
 export type FactCheckResult = {
@@ -36,7 +41,11 @@ export type FactCheckResult = {
   headline: string;
   claims: ClaimCheck[];
   sources: Source[];
+  factCheckedBy: FactCheckMatch[];
 };
+
+// What the judge reads: web results, plus published fact-checks listed first.
+type Evidence = SearchResult & { factCheck?: PublishedFactCheck };
 
 type Scope = "local" | "public";
 type Language = { language: string; languageCode: string };
@@ -53,6 +62,16 @@ const extractionSchema = z.object({
           .min(1)
           .max(2)
           .describe("Short web search queries: one in English, plus one in the message's language if it isn't English"),
+        factCheckQueries: z
+          .array(z.string())
+          .min(1)
+          .max(3)
+          .describe(
+            "Queries for a fact-check database that only matches when EVERY word appears, so use 2-5 plain " +
+              "keywords, no symbols or filler. Give a short English one, a slightly different English one, " +
+              "and one in the message's language if it isn't English, e.g. 'nano chip 2000 rupee note', " +
+              "'2000 note chip', '2000 के नोट में चिप'",
+          ),
         scope: z
           .enum(["local", "public"])
           .describe(
@@ -82,6 +101,9 @@ const verdictSchema = z.object({
       }),
     )
     .describe("Sources that directly address this specific claim; empty if none do"),
+  matchingFactCheckIds: z
+    .array(z.number().int())
+    .describe("Ids of PUBLISHED FACT-CHECK sources that checked this same claim; empty if none match"),
   verdict: z
     .enum(VERDICTS)
     .describe(
@@ -102,8 +124,10 @@ const verdictSchema = z.object({
 });
 
 export async function factCheck(message: string): Promise<FactCheckResult> {
+  const started = performance.now();
+
   // 1. Split the raw forward into separate checkable claims.
-  const { output: extracted } = await generateText({
+  const { output: extracted } = await timed("extract", generateText({
     model,
     output: Output.object({ schema: extractionSchema }),
     system:
@@ -117,37 +141,50 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
       "such as 'don't give children bananas', 'stop your medicine' or 'don't go to the station': they are " +
       "usually the harmful part, so check them as a claim together with the reason the message gives.",
     prompt: message,
-  });
+  }));
 
   // 2. Check every claim at the same time.
   const claims = await Promise.all(extracted.claims.map((c) => checkClaim(message, c, extracted)));
 
   const verdict = overallVerdict(claims);
   const sources = new Map(claims.flatMap((c) => c.sources).map((s) => [s.url, s]));
+  const factCheckedBy = new Map(claims.flatMap((c) => c.factCheckedBy).map((f) => [f.url, f]));
+  const headline =
+    claims.length === 1 ? claims[0].headline : await timed("summarise", summarise(claims, verdict, extracted.language));
 
+  console.info(`[timing] total ${seconds(started)} for ${claims.length} claim(s)`);
   return {
     languageCode: extracted.languageCode.toLowerCase(),
     verdict,
     unverifiableReason: verdict === "unverifiable" ? overallReason(claims) : null,
-    headline: claims.length === 1 ? claims[0].headline : await summarise(claims, verdict, extracted.language),
+    headline,
     claims,
     sources: [...sources.values()],
+    factCheckedBy: [...factCheckedBy.values()],
   };
 }
 
 async function checkClaim(
   message: string,
-  { claim, searchQueries, scope }: { claim: string; searchQueries: string[]; scope: Scope },
+  {
+    claim,
+    searchQueries,
+    factCheckQueries,
+    scope,
+  }: { claim: string; searchQueries: string[]; factCheckQueries: string[]; scope: Scope },
   { language }: Language,
 ): Promise<ClaimCheck> {
-  // Search the web for evidence, merging results from each query. The model occasionally returns
+  // Search the web and the fact-check database at the same time. The model occasionally returns
   // an empty query, so fall back to the claim itself.
-  const queries = searchQueries.map((q) => q.trim()).filter(Boolean);
-  const resultSets = await Promise.all((queries.length > 0 ? queries : [claim]).map((q) => searchWeb(q)));
-  const sources = [...new Map(resultSets.flat().map((s) => [s.url.toLowerCase(), s])).values()].slice(0, 8);
+  const webQueries = nonEmpty(searchQueries, claim);
+  const [resultSets, published] = await timed(
+    "search",
+    Promise.all([Promise.all(webQueries.map((q) => searchWeb(q))), searchFactChecks(nonEmpty(factCheckQueries, claim))]),
+  );
+  const sources = mergeEvidence(published, resultSets.flat());
 
   // Judge the claim using only the retrieved sources.
-  const { output: judged } = await generateText({
+  const { output: judged } = await timed("judge", generateText({
     model,
     output: Output.object({ schema: verdictSchema }),
     system:
@@ -161,6 +198,11 @@ async function checkClaim(
       "older event in the sources doesn't prove today's claim false either. But experts or official " +
       "bodies saying something is safe, harmless, doesn't work or isn't how things work DOES contradict " +
       "a claim that it is dangerous or works, so that is 'false'.\n\n" +
+      "Sources marked PUBLISHED FACT-CHECK come from professional fact-checkers. First decide whether " +
+      "each one checked this SAME claim: hoaxes get recycled with changed details (a different note, " +
+      "amount, date, place or person), and a fact-check of a different version doesn't decide this one. " +
+      "When one matches, its rating is strong evidence and you should normally agree with it. Take the " +
+      "details for your reasons from the article text where available.\n\n" +
       `Write the headline and reasons in ${language}.\n\n` +
       "Your readers are elderly parents with no background in science, maths or technology. " +
       "Write like you are gently explaining to your grandmother:\n" +
@@ -194,13 +236,25 @@ async function checkClaim(
       `Scope: ${scope} (if unverifiable and scope is local, the reason is local_news, never no_evidence)\n\n` +
       `Original message:\n${message}\n\nClaim to check: ${claim}\n\n` +
       `Sources:\n${sources.length > 0 ? formatSources(sources) : "(no sources found)"}`,
-  });
+  }));
 
   // Map ids back to real URLs so links can only come from the search results.
   const cited = new Map<string, Source>();
   for (const { id, title } of judged.citations) {
     const source = sources[id - 1];
     if (source) cited.set(source.url, { title: title.trim() || source.title, url: source.url });
+  }
+
+  const factCheckedBy = [...new Set(judged.matchingFactCheckIds)]
+    .map((id) => sources[id - 1]?.factCheck)
+    .filter((f): f is PublishedFactCheck => Boolean(f))
+    .map(({ publisher, rating, url }) => ({ publisher, rating, url }));
+
+  // A matching fact-check is the strongest source we have, so always list it even if the model didn't cite it.
+  for (const match of factCheckedBy) {
+    if (!cited.has(match.url)) {
+      cited.set(match.url, { title: sources.find((s) => s.url === match.url)!.title, url: match.url });
+    }
   }
 
   return {
@@ -210,8 +264,48 @@ async function checkClaim(
     headline: judged.headline,
     // Safety net in case the model still writes citation markers into the text.
     reasons: judged.reasons.map((r) => r.replace(/\s*\[\d+\]/g, "")),
-    sources: [...cited.values()],
+    // Published fact-checks first: they are what readers trust most.
+    sources: [...cited.values()].sort((a, b) => Number(isFactCheck(b, sources)) - Number(isFactCheck(a, sources))),
+    factCheckedBy,
   };
+}
+
+function isFactCheck(source: Source, evidence: Evidence[]) {
+  return evidence.some((e) => e.url === source.url && e.factCheck);
+}
+
+function nonEmpty(queries: string[], fallback: string) {
+  const cleaned = queries.map((q) => q.trim()).filter(Boolean);
+  return cleaned.length > 0 ? cleaned : [fallback];
+}
+
+// Published fact-checks go first. When the web search also found the same article, keep its text so
+// the judge can explain the details rather than just the rating.
+function mergeEvidence(published: PublishedFactCheck[], web: SearchResult[]): Evidence[] {
+  const webByUrl = new Map(web.map((w) => [w.url.toLowerCase(), w]));
+  const factChecks: Evidence[] = published.map((f) => ({
+    title: f.title,
+    url: f.url,
+    publishedDate: f.reviewDate,
+    text: webByUrl.get(f.url.toLowerCase())?.text ?? "",
+    factCheck: f,
+  }));
+  const seen = new Set(factChecks.map((f) => f.url.toLowerCase()));
+  const rest = [...webByUrl.values()].filter((w) => !seen.has(w.url.toLowerCase())).slice(0, 8);
+  return [...factChecks, ...rest];
+}
+
+async function timed<T>(label: string, work: Promise<T>): Promise<T> {
+  const started = performance.now();
+  try {
+    return await work;
+  } finally {
+    console.info(`[timing] ${label} ${seconds(started)}`);
+  }
+}
+
+function seconds(since: number) {
+  return `${((performance.now() - since) / 1000).toFixed(1)}s`;
 }
 
 // One false claim makes the whole forward unsafe to share, so the worst verdict wins.
@@ -265,13 +359,16 @@ function unverifiableReason(
   return judged.unverifiableReason;
 }
 
-function formatSources(sources: SearchResult[]) {
+function formatSources(sources: Evidence[]) {
   return sources
-    .map(
-      (s, i) =>
-        `[${i + 1}] ${s.title}\nURL: ${s.url}\n` +
-        (s.publishedDate ? `Published: ${s.publishedDate}\n` : "") +
-        `${s.text}`,
-    )
+    .map((s, i) => {
+      const header = `[${i + 1}] ${s.factCheck ? "PUBLISHED FACT-CHECK: " : ""}${s.title}\nURL: ${s.url}\n`;
+      const factCheck = s.factCheck
+        ? `Fact-checker: ${s.factCheck.publisher}\nClaim they checked: ${s.factCheck.claimReviewed}\n` +
+          (s.factCheck.claimant ? `Claim made by: ${s.factCheck.claimant}\n` : "") +
+          `Their rating: ${s.factCheck.rating}\n`
+        : "";
+      return header + factCheck + (s.publishedDate ? `Published: ${s.publishedDate}\n` : "") + s.text;
+    })
     .join("\n\n---\n\n");
 }

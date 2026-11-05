@@ -103,6 +103,7 @@ export function FactChecker() {
 function ResultCard({ result }: { result: FactCheckResult }) {
   const style = cardStyle(result);
   const labels = getLabels(result.languageCode);
+  const factCheckUrls = new Set(result.factCheckedBy.map((f) => f.url));
   return (
     <section className={`flex flex-col gap-4 rounded-2xl border-2 p-6 ${style.className}`}>
       <h2 className="text-3xl font-bold">
@@ -112,6 +113,13 @@ function ResultCard({ result }: { result: FactCheckResult }) {
         {result.unverifiableReason && <span aria-hidden>{REASON_ICONS[result.unverifiableReason]} </span>}
         {result.headline}
       </p>
+      {result.factCheckedBy.length > 0 && (
+        <p className="text-base">
+          <span aria-hidden>✔ </span>
+          {labels.alreadyCheckedBy}{" "}
+          <span className="font-semibold">{[...new Set(result.factCheckedBy.map((f) => f.publisher))].join(", ")}</span>
+        </p>
+      )}
       <details className="group rounded-xl border border-current/30 bg-white/50 dark:bg-black/20">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
           {labels.why[result.verdict]}
@@ -149,7 +157,14 @@ function ResultCard({ result }: { result: FactCheckResult }) {
                 >
                   {s.title}
                 </a>
-                <span className="block text-sm opacity-70">{new URL(s.url).hostname}</span>
+                <span className="block text-sm opacity-70">
+                  {new URL(s.url).hostname}
+                  {factCheckUrls.has(s.url) && (
+                    <span className="ml-2 rounded-full border border-current px-2 py-0.5 text-xs font-semibold">
+                      {labels.factCheckTag}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

@@ -7,6 +7,8 @@ type CardLabels = {
   why: Record<Verdict, string>;
   whatWeChecked: string;
   sources: string;
+  alreadyCheckedBy: string;
+  factCheckTag: string;
 };
 
 const LABELS: Record<string, CardLabels> = {
@@ -20,6 +22,8 @@ const LABELS: Record<string, CardLabels> = {
     },
     whatWeChecked: "What we checked:",
     sources: "Sources",
+    alreadyCheckedBy: "Already checked by fact-checkers:",
+    factCheckTag: "Fact-check",
   },
   hi: {
     verdict: { true: "सच", false: "झूठ", misleading: "भ्रामक", unverifiable: "पुष्टि नहीं हो सकी" },
@@ -31,6 +35,8 @@ const LABELS: Record<string, CardLabels> = {
     },
     whatWeChecked: "हमने क्या जाँचा:",
     sources: "स्रोत",
+    alreadyCheckedBy: "फ़ैक्ट-चेकर पहले ही इसकी जाँच कर चुके हैं:",
+    factCheckTag: "फ़ैक्ट-चेक",
   },
   mr: {
     verdict: { true: "खरे", false: "खोटे", misleading: "दिशाभूल करणारे", unverifiable: "खात्री करता आली नाही" },
@@ -42,6 +48,8 @@ const LABELS: Record<string, CardLabels> = {
     },
     whatWeChecked: "आम्ही काय तपासले:",
     sources: "स्रोत",
+    alreadyCheckedBy: "फॅक्ट-चेकर्सनी याची आधीच तपासणी केली आहे:",
+    factCheckTag: "फॅक्ट-चेक",
   },
 };
 

@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { model } from "./llm";
+import { lowEffort, model } from "./llm";
 
 export type ImageReading = {
   text: string; // every piece of text in the image, in its original language
@@ -38,6 +38,7 @@ export async function readImage(image: Uint8Array, mediaType: string): Promise<I
   const started = performance.now();
   const { output } = await generateText({
     model,
+    providerOptions: lowEffort,
     output: Output.object({ schema: readingSchema }),
     system:
       "You read images that people received as WhatsApp forwards so their claims can be fact-checked. " +

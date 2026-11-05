@@ -1,7 +1,7 @@
 import "server-only";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { model } from "./llm";
+import { lowEffort, model } from "./llm";
 import { searchFactChecks, type PublishedFactCheck } from "./fact-check-db";
 import { domainOf, findLinks, isMostlyLinks } from "./links";
 import { readPages, searchWeb, type LinkedPage, type SearchResult } from "./search";
@@ -150,6 +150,7 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
   // 2. Split the forward (and any linked article) into separate checkable claims.
   const { output: extracted } = await timed("extract", generateText({
     model,
+    providerOptions: lowEffort,
     output: Output.object({ schema: extractionSchema }),
     system:
       "You extract the factual claims from messages people receive, such as WhatsApp forwards. " +
@@ -373,6 +374,7 @@ function overallReason(claims: ClaimCheck[]): UnverifiableReason | null {
 async function summarise(claims: ClaimCheck[], verdict: Verdict, language: string) {
   const { output } = await generateText({
     model,
+    providerOptions: lowEffort,
     output: Output.object({
       schema: z.object({
         headline: z.string().describe("One short, everyday sentence of at most 12 words"),

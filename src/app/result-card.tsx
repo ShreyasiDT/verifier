@@ -31,6 +31,10 @@ const REASON_ICONS: Record<UnverifiableReason, string> = {
   not_a_fact: "💬",
 };
 
+export function verdictIcon(result: FactCheckResult) {
+  return cardStyle(result).icon;
+}
+
 // A big claim with no coverage is a warning sign, so it looks like "misleading" rather than neutral.
 function cardStyle(result: FactCheckResult) {
   if (result.unverifiableReason === "no_evidence") {

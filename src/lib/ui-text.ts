@@ -37,6 +37,15 @@ type UiText = {
   steps: { readImage: string; findClaims: string; search: string; judge: string };
   youChecked: string;
   checkAnother: string;
+  recentChecks: string;
+  historyNote: string;
+  clearHistory: string;
+  confirmClearHistory: string;
+  removeFromHistory: string;
+  noHistory: string;
+  openSidebar: string;
+  closeSidebar: string;
+  home: string;
   errors: Record<ErrorCode, string>;
 };
 
@@ -62,6 +71,15 @@ const TEXT: Record<UiLanguage, UiText> = {
     },
     youChecked: "You checked",
     checkAnother: "🔁 Check another message",
+    recentChecks: "Your recent checks",
+    historyNote: "Saved only on this phone.",
+    clearHistory: "Clear all",
+    confirmClearHistory: "Remove all your recent checks from this phone?",
+    removeFromHistory: "Remove from recent checks",
+    noHistory: "Messages you check will appear here.",
+    openSidebar: "Open recent checks",
+    closeSidebar: "Close recent checks",
+    home: "Home: check a new message",
     errors: {
       too_short: "Please paste a longer message.",
       too_long: "This message is too long. Please paste a shorter part of it.",
@@ -96,6 +114,15 @@ const TEXT: Record<UiLanguage, UiText> = {
     },
     youChecked: "आपने यह जाँचा",
     checkAnother: "🔁 दूसरा मैसेज जाँचें",
+    recentChecks: "आपकी हाल की जाँचें",
+    historyNote: "ये सिर्फ़ इसी फ़ोन में सेव हैं।",
+    clearHistory: "सब हटाएँ",
+    confirmClearHistory: "क्या इस फ़ोन से आपकी सभी हाल की जाँचें हटा दें?",
+    removeFromHistory: "हाल की जाँचों से हटाएँ",
+    noHistory: "आप जो मैसेज जाँचेंगे, वे यहाँ दिखेंगे।",
+    openSidebar: "हाल की जाँचें खोलें",
+    closeSidebar: "हाल की जाँचें बंद करें",
+    home: "होम: नया मैसेज जाँचें",
     errors: {
       too_short: "कृपया थोड़ा लंबा मैसेज डालें।",
       too_long: "यह मैसेज बहुत लंबा है। कृपया इसका छोटा हिस्सा डालें।",
@@ -130,6 +157,15 @@ const TEXT: Record<UiLanguage, UiText> = {
     },
     youChecked: "तुम्ही हे तपासले",
     checkAnother: "🔁 दुसरा मेसेज तपासा",
+    recentChecks: "तुमच्या अलीकडील तपासण्या",
+    historyNote: "या फक्त याच फोनमध्ये जतन केल्या आहेत.",
+    clearHistory: "सर्व काढा",
+    confirmClearHistory: "या फोनमधून तुमच्या सर्व अलीकडील तपासण्या काढायच्या?",
+    removeFromHistory: "अलीकडील तपासण्यांमधून काढा",
+    noHistory: "तुम्ही तपासलेले मेसेज इथे दिसतील.",
+    openSidebar: "अलीकडील तपासण्या उघडा",
+    closeSidebar: "अलीकडील तपासण्या बंद करा",
+    home: "होम: नवीन मेसेज तपासा",
     errors: {
       too_short: "कृपया थोडा मोठा मेसेज टाका.",
       too_long: "हा मेसेज खूप मोठा आहे. कृपया त्याचा छोटा भाग टाका.",

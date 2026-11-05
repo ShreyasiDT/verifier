@@ -32,6 +32,12 @@ After that, every push to `main` deploys automatically.
 - Check the exact same message again: it should come back almost instantly (from the Redis cache).
 - In **Logs**, a check shows `[timing]` lines per step; errors show as `fact-check failed`.
 
+## Running locally
+
+Create `.env.local` (it's git-ignored) with the five variables from the table above, then run
+`pnpm dev`. Redis is optional locally: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+to test rate limits and the shared cache, or leave them out to run without either.
+
 ## Limits
 
 Set in `src/lib/rate-limit.ts`:

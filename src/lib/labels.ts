@@ -9,6 +9,8 @@ type CardLabels = {
   sources: string;
   alreadyCheckedBy: string;
   factCheckTag: string;
+  articleWeRead: string;
+  couldNotOpen: string;
 };
 
 const LABELS: Record<string, CardLabels> = {
@@ -24,6 +26,8 @@ const LABELS: Record<string, CardLabels> = {
     sources: "Sources",
     alreadyCheckedBy: "Already checked by fact-checkers:",
     factCheckTag: "Fact-check",
+    articleWeRead: "Article we read:",
+    couldNotOpen: "We couldn't open this link:",
   },
   hi: {
     verdict: { true: "सच", false: "झूठ", misleading: "भ्रामक", unverifiable: "पुष्टि नहीं हो सकी" },
@@ -37,6 +41,8 @@ const LABELS: Record<string, CardLabels> = {
     sources: "स्रोत",
     alreadyCheckedBy: "फ़ैक्ट-चेकर पहले ही इसकी जाँच कर चुके हैं:",
     factCheckTag: "फ़ैक्ट-चेक",
+    articleWeRead: "हमने यह लेख पढ़ा:",
+    couldNotOpen: "यह लिंक नहीं खुल सका:",
   },
   mr: {
     verdict: { true: "खरे", false: "खोटे", misleading: "दिशाभूल करणारे", unverifiable: "खात्री करता आली नाही" },
@@ -50,6 +56,8 @@ const LABELS: Record<string, CardLabels> = {
     sources: "स्रोत",
     alreadyCheckedBy: "फॅक्ट-चेकर्सनी याची आधीच तपासणी केली आहे:",
     factCheckTag: "फॅक्ट-चेक",
+    articleWeRead: "आम्ही हा लेख वाचला:",
+    couldNotOpen: "ही लिंक उघडता आली नाही:",
   },
 };
 

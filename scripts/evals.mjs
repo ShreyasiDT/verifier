@@ -31,8 +31,14 @@ function problems({ expect }, result) {
   if (!expect.claims.includes(result.claims.length))
     found.push(`${result.claims.length} claims, expected ${expect.claims}`);
   if (result.languageCode !== expect.language) found.push(`language ${result.languageCode}`);
-  if (["true", "false"].includes(result.verdict) && result.sources.length === 0) found.push("no sources");
+  // A linked page we read can be the evidence itself (e.g. the video isn't what the message says).
+  if (["true", "false"].includes(result.verdict) && result.sources.length + result.articles.length === 0)
+    found.push("no sources");
   if (expect.factChecked && result.factCheckedBy.length === 0) found.push("no published fact-check matched");
+  if (expect.articles !== undefined && result.articles.length !== expect.articles)
+    found.push(`${result.articles.length} linked pages read, expected ${expect.articles}`);
+  if (expect.unreadableLinks !== undefined && result.unreadableLinks.length !== expect.unreadableLinks)
+    found.push(`${result.unreadableLinks.length} unreadable links, expected ${expect.unreadableLinks}`);
   return found;
 }
 

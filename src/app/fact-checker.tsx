@@ -70,7 +70,7 @@ export function FactChecker() {
     <div className="flex flex-col gap-6">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label htmlFor="message" className="text-lg font-medium">
-          Paste the message you received
+          Paste the message or link you received
         </label>
         <textarea
           id="message"
@@ -118,6 +118,22 @@ function ResultCard({ result }: { result: FactCheckResult }) {
           <span aria-hidden>✔ </span>
           {labels.alreadyCheckedBy}{" "}
           <span className="font-semibold">{[...new Set(result.factCheckedBy.map((f) => f.publisher))].join(", ")}</span>
+        </p>
+      )}
+      {result.articles.map((a) => (
+        <p key={a.url} className="text-base">
+          <span aria-hidden>📰 </span>
+          {labels.articleWeRead}{" "}
+          <a href={a.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">
+            {a.title}
+          </a>{" "}
+          <span className="opacity-70">({a.domain})</span>
+        </p>
+      ))}
+      {result.unreadableLinks.length > 0 && (
+        <p className="text-base">
+          <span aria-hidden>⚠️ </span>
+          {labels.couldNotOpen} <span className="font-semibold">{result.unreadableLinks.join(", ")}</span>
         </p>
       )}
       <details className="group rounded-xl border border-current/30 bg-white/50 dark:bg-black/20">

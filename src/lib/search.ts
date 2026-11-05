@@ -32,3 +32,25 @@ export async function searchWeb(query: string, numResults = 6): Promise<SearchRe
       text: r.text,
     }));
 }
+
+export type LinkedPage = { url: string; title: string; publishedDate?: string; text: string };
+
+// Read pages through Exa rather than fetching them ourselves, so a pasted link can never make our
+// server request internal addresses. Pages Exa can't open are simply missing from the result.
+export async function readPages(urls: string[], maxCharacters = 6000): Promise<LinkedPage[]> {
+  if (urls.length === 0) return [];
+  try {
+    const { results } = await exa.getContents(urls, { text: { maxCharacters }, maxAgeHours: 168 });
+    return results
+      .filter((r) => r.text || r.title)
+      .map((r) => ({
+        url: r.url,
+        title: r.title ?? r.url,
+        publishedDate: r.publishedDate ?? undefined,
+        text: r.text ?? "",
+      }));
+  } catch (err) {
+    console.error("reading pages failed", { urls, err });
+    return [];
+  }
+}

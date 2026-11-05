@@ -329,5 +329,50 @@
       "language": "en",
       "factChecked": true
     }
+  },
+  {
+    "id": "L-news-link-en",
+    "text": "https://www.hindustantimes.com/cities/pune-news/short-circuit-triggers-minor-fire-at-pune-railway-station-101785179864139.html",
+    "expect": {
+      "verdict": [
+        "true"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en",
+      "articles": 1
+    }
+  },
+  {
+    "id": "L-scam-link-mr",
+    "text": "आनंदाची बातमी! मोदी सरकार सर्व विद्यार्थ्यांना मोफत लॅपटॉप देत आहे. लगेच नोंदणी करा: https://pm-free-laptop-yojana2026.in/register?ref=WA_Group",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "mr",
+      "unreadableLinks": 1
+    }
+  },
+  {
+    "id": "L-youtube-en",
+    "text": "This video proves the Moon landing was faked by NASA in a studio! Watch: https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "expect": {
+      "verdict": [
+        "false"
+      ],
+      "claims": [
+        1,
+        2
+      ],
+      "language": "en",
+      "articles": 1
+    }
   }
 ]

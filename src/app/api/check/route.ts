@@ -22,6 +22,13 @@ export async function POST(request: Request) {
     if (Date.parse(result.checkedAt) < started) console.info(`[cache] hit, checked at ${result.checkedAt}`);
     return Response.json(result);
   } catch (err) {
+    // Checked by name: the error may be recreated when crossing the cache boundary.
+    if (err instanceof Error && err.name === "UnreadableLinkError") {
+      return Response.json(
+        { error: "We couldn't open this link. Please paste the text of the message or article instead." },
+        { status: 422 },
+      );
+    }
     console.error("fact-check failed", err);
     return Response.json({ error: "Something went wrong while checking. Please try again." }, { status: 500 });
   }

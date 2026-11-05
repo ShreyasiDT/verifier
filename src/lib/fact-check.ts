@@ -3,7 +3,8 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { model } from "./llm";
 import { searchFactChecks, type PublishedFactCheck } from "./fact-check-db";
-import { searchWeb, type SearchResult } from "./search";
+import { domainOf, findLinks, isMostlyLinks } from "./links";
+import { readPages, searchWeb, type LinkedPage, type SearchResult } from "./search";
 
 export const VERDICTS = ["true", "false", "misleading", "unverifiable"] as const;
 export type Verdict = (typeof VERDICTS)[number];
@@ -42,6 +43,9 @@ export type FactCheckResult = {
   claims: ClaimCheck[];
   sources: Source[];
   factCheckedBy: FactCheckMatch[];
+  // Linked pages we read, and domains of links we couldn't open.
+  articles: { url: string; title: string; domain: string }[];
+  unreadableLinks: string[];
   // When the pipeline actually ran; older than the request means it came from the cache.
   checkedAt: string;
 };
@@ -125,10 +129,25 @@ const verdictSchema = z.object({
     ),
 });
 
+// Thrown when the message is only a link and we couldn't open it, so there's nothing to check.
+export class UnreadableLinkError extends Error {
+  name = "UnreadableLinkError";
+}
+
 export async function factCheck(message: string): Promise<FactCheckResult> {
   const started = performance.now();
 
-  // 1. Split the raw forward into separate checkable claims.
+  // 1. Read any linked pages, so claims can come from the article as well as the message.
+  const links = findLinks(message);
+  const pages = await timed("read links", readPages(links));
+  const openedDomains = new Set(pages.map((p) => domainOf(p.url)));
+  const unreadableLinks = links.map(domainOf).filter((d) => !openedDomains.has(d));
+  if (links.length > 0 && pages.length === 0 && isMostlyLinks(message)) {
+    throw new UnreadableLinkError(`Couldn't open ${unreadableLinks.join(", ")}`);
+  }
+  const context = withLinkedPages(message, pages, unreadableLinks);
+
+  // 2. Split the forward (and any linked article) into separate checkable claims.
   const { output: extracted } = await timed("extract", generateText({
     model,
     output: Output.object({ schema: extractionSchema }),
@@ -141,12 +160,15 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
       "Most messages make just one claim. Keep the most important ones (at most 3). " +
       "Ignore greetings, emojis and requests to forward the message. But never drop advice or warnings " +
       "such as 'don't give children bananas', 'stop your medicine' or 'don't go to the station': they are " +
-      "usually the harmful part, so check them as a claim together with the reason the message gives.",
-    prompt: message,
+      "usually the harmful part, so check them as a claim together with the reason the message gives.\n\n" +
+      "The message may include linked pages. If the message is little more than a link, take the claims " +
+      "from the linked page (its headline claim first), and use the page's language. Otherwise check what " +
+      "the message itself says, using the page only as context.",
+    prompt: context,
   }));
 
-  // 2. Check every claim at the same time.
-  const claims = await Promise.all(extracted.claims.map((c) => checkClaim(message, c, extracted)));
+  // 3. Check every claim at the same time.
+  const claims = await Promise.all(extracted.claims.map((c) => checkClaim(context, c, extracted)));
 
   const verdict = overallVerdict(claims);
   const sources = new Map(claims.flatMap((c) => c.sources).map((s) => [s.url, s]));
@@ -163,6 +185,8 @@ export async function factCheck(message: string): Promise<FactCheckResult> {
     claims,
     sources: [...sources.values()],
     factCheckedBy: [...factCheckedBy.values()],
+    articles: pages.map((p) => ({ url: p.url, title: p.title, domain: domainOf(p.url) })),
+    unreadableLinks,
     checkedAt: new Date().toISOString(),
   };
 }
@@ -206,6 +230,11 @@ async function checkClaim(
       "amount, date, place or person), and a fact-check of a different version doesn't decide this one. " +
       "When one matches, its rating is strong evidence and you should normally agree with it. Take the " +
       "details for your reasons from the article text where available.\n\n" +
+      "The message's own linked pages are what is being checked, not evidence, unless the page is itself " +
+      "a fact-check or an official source. If the message asks people to register, claim money or a " +
+      "prize, or enter personal details through a link that isn't an official government website " +
+      "(those end in .gov.in or .nic.in), say plainly in your reasons that this is a common scam sign " +
+      "and they shouldn't open it or share details.\n\n" +
       `Write the headline and reasons in ${language}.\n\n` +
       "Your readers are elderly parents with no background in science, maths or technology. " +
       "Write like you are gently explaining to your grandmother:\n" +
@@ -350,6 +379,18 @@ async function summarise(claims: ClaimCheck[], verdict: Verdict, language: strin
     prompt: claims.map((c) => `- ${c.verdict}: ${c.claim} (${c.headline})`).join("\n"),
   });
   return output.headline;
+}
+
+// The message plus what we found at its links, as one block of text for the model to read.
+function withLinkedPages(message: string, pages: LinkedPage[], unreadable: string[]) {
+  const blocks = pages.map(
+    (p) =>
+      `--- Linked page (${domainOf(p.url)}) ---\nTitle: ${p.title}\n` +
+      (p.publishedDate ? `Published: ${p.publishedDate.slice(0, 10)}\n` : "") +
+      p.text,
+  );
+  for (const domain of unreadable) blocks.push(`--- Link to ${domain} could not be opened ---`);
+  return blocks.length > 0 ? `${message}\n\n${blocks.join("\n\n")}` : message;
 }
 
 // Missing coverage of local news is expected, not a warning sign, so never flag it as no_evidence.
